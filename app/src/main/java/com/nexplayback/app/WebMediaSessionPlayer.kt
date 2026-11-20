@@ -60,7 +60,6 @@ class WebMediaSessionPlayer(
         if (item != null) {
             state.setCurrentMediaItemIndex(0)
                 .setContentPositionMs(positionMs)
-                .setContentBufferedPositionMs(positionMs)
         }
         return state.build()
     }
