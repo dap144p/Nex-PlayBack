@@ -4,7 +4,8 @@ on:
   push:
     branches:
       - main
-      - feature/android-player-foundation
+    tags:
+      - "v*"
   workflow_dispatch:
 
 permissions:
@@ -16,49 +17,80 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: "8.13"
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
+
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
-      - name: Build debug APK
+
+      - name: Build APK
         run: gradle assembleDebug --stacktrace
-      - name: Upload APK
+
+      - name: Upload CI APK
+        if: "!startsWith(github.ref, 'refs/tags/v')"
         uses: actions/upload-artifact@v4
         with:
-          name: Nex-PlayBack-debug
+          name: Nex-PlayBack-CI
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
-      - name: Create GitHub Release
-        if: github.ref == 'refs/heads/main'
+
+      - name: Prepare tagged release APK
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp app/build/outputs/apk/debug/app-debug.apk "Nex-PlayBack-${GITHUB_REF_NAME}.apk"
+
+      - name: Upload tagged APK artifact
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nex-PlayBack-${{ github.ref_name }}
+          path: Nex-PlayBack-${{ github.ref_name }}.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          gh release create v0.1.0 app/build/outputs/apk/debug/app-debug.apk \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "Nex-PlayBack v0.1.0" \
-            --target "$GITHUB_SHA" \
-            --notes "## Nex-PlayBack v0.1.0
-
-          First Android release.
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "Nex-PlayBack-${GITHUB_REF_NAME}.apk" \
+              --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "Nex-PlayBack-${GITHUB_REF_NAME}.apk" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Nex-PlayBack $GITHUB_REF_NAME" \
+              --target "$GITHUB_SHA" \
+              --notes "Nex-PlayBack Android release.
 
           - Lightweight WebView browser for general websites.
           - Background audio player for direct HTTPS audio streams and local audio files.
           - MediaSession notification and lock-screen controls.
-          - Browser WebView pauses while the app is in the background.
-          - Floating browser can be minimized to pause its WebView rendering.
+          - WebView pauses when the app is in the background.
+          - Floating browser pauses when minimized.
 
           Minimum Android version: Android 10 (API 29).
 
-          Note: YouTube opens through its official website. Video-to-audio extraction is not included; website playback follows the website's own restrictions. This is a debug-signed APK."
+          YouTube opens through its official website. Video-to-audio extraction is not included; website playback follows the website's own restrictions.
+
+          APK filename is release-versioned. This initial distribution is debug-signed; configure a permanent release keystore before production distribution."
+          fi
