@@ -27,8 +27,6 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -106,7 +104,7 @@ class MainActivity : Activity() {
         nav.addView(makeButton("HOME") { browser.loadUrl("https://www.google.com") })
         root.addView(nav)
 
-        browser = WebView(this).apply {
+        browser = WebPlaybackCoordinator.obtainMainWebView(this).apply {
             setBackgroundColor(Color.rgb(17, 25, 35))
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
@@ -120,6 +118,7 @@ class MainActivity : Activity() {
                 }
 
                 override fun onPageFinished(view: WebView, url: String) {
+                    WebPlaybackCoordinator.onPageFinished(view)
                     if (addressInput.text.toString() != url) {
                         addressInput.setText(url)
                         addressInput.setSelection(addressInput.text.length)
@@ -131,6 +130,7 @@ class MainActivity : Activity() {
                 }
             }
         }
+        WebPlaybackCoordinator.configure(browser)
         root.addView(
             browser,
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f).apply {
@@ -206,13 +206,12 @@ class MainActivity : Activity() {
             Toast.makeText(this, "Player sedang disiapkan. Coba lagi sebentar.", Toast.LENGTH_SHORT).show()
             return
         }
-        val item = MediaItem.Builder()
-            .setUri(uri)
-            .setMediaMetadata(MediaMetadata.Builder().setTitle(title).setArtist("Nex-PlayBack").build())
-            .build()
-        mediaController.setMediaItem(item)
-        mediaController.prepare()
-        mediaController.play()
+        startService(
+            Intent(this, PlaybackService::class.java)
+                .setAction(PlaybackService.ACTION_PLAY_MEDIA)
+                .setData(uri)
+                .putExtra(PlaybackService.EXTRA_TITLE, title)
+        )
         playPauseButton.text = "PAUSE"
     }
 
@@ -283,8 +282,13 @@ class MainActivity : Activity() {
 
     @Deprecated("Uses the platform activity result API for broad Android compatibility.")
     override fun onBackPressed() {
-        if (::browser.isInitialized && browser.canGoBack()) browser.goBack()
-        else super.onBackPressed()
+        if (::browser.isInitialized && browser.canGoBack()) {
+            browser.goBack()
+        } else if (::browser.isInitialized && WebPlaybackCoordinator.shouldRetain(browser)) {
+            moveTaskToBack(true)
+        } else {
+            super.onBackPressed()
+        }
     }
 
     override fun onResume() {
@@ -293,7 +297,7 @@ class MainActivity : Activity() {
     }
 
     override fun onStop() {
-        if (::browser.isInitialized) WebViewPowerManager.pause(browser)
+        if (::browser.isInitialized && !WebPlaybackCoordinator.shouldRetain(browser)) WebViewPowerManager.pause(browser)
         super.onStop()
     }
 
@@ -306,7 +310,10 @@ class MainActivity : Activity() {
         controller?.release()
         controller = null
         controllerFuture = null
-        if (::browser.isInitialized) WebViewPowerManager.destroy(browser)
+        if (::browser.isInitialized) {
+            if (WebPlaybackCoordinator.shouldRetain(browser)) WebPlaybackCoordinator.retainMainWebView(browser)
+            else WebPlaybackCoordinator.destroyWebView(browser)
+        }
         super.onDestroy()
     }
 
