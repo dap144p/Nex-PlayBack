@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -40,3 +40,25 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0.1.0 app/build/outputs/apk/debug/app-debug.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Nex-PlayBack v0.1.0" \
+            --target "$GITHUB_SHA" \
+            --notes "## Nex-PlayBack v0.1.0
+
+          First Android release.
+
+          - Lightweight WebView browser for general websites.
+          - Background audio player for direct HTTPS audio streams and local audio files.
+          - MediaSession notification and lock-screen controls.
+          - Browser WebView pauses while the app is in the background.
+          - Floating browser can be minimized to pause its WebView rendering.
+
+          Minimum Android version: Android 10 (API 29).
+
+          Note: YouTube opens through its official website. Video-to-audio extraction is not included; website playback follows the website's own restrictions. This is a debug-signed APK."
