@@ -388,6 +388,7 @@ class FloatingBrowserService : Service() {
     private fun minimizeBrowserWindow(id: Int) {
         val browser = browserWindows[id] ?: return
         if (browser.minimized) return
+        browser.previousHeight = browser.params.height
         browser.minimized = true
         browser.content.visibility = View.GONE
         browser.resizeBar.visibility = View.GONE
