@@ -172,7 +172,7 @@ object WebPlaybackCoordinator {
     private fun selectActiveWebView() {
         val candidate = entries.entries
             .filter { it.value.info?.hasMedia == true }
-            .maxByOrNull { if (it.value.info?.isPlaying == true) Long.MAX_VALUE - 1L + it.value.touchedAt else it.value.touchedAt }
+            .maxWithOrNull(compareBy<Map.Entry<WebView, Entry>> { if (it.value.info?.isPlaying == true) 1 else 0 }.thenBy { it.value.touchedAt })
         activeWebView = candidate?.key
     }
 
