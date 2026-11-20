@@ -289,7 +289,12 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        if (::browser.isInitialized) browser.onResume()
+        if (::browser.isInitialized) WebViewPowerManager.resume(browser)
+    }
+
+    override fun onStop() {
+        if (::browser.isInitialized) WebViewPowerManager.pause(browser)
+        super.onStop()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -301,10 +306,7 @@ class MainActivity : Activity() {
         controller?.release()
         controller = null
         controllerFuture = null
-        if (::browser.isInitialized) {
-            browser.stopLoading()
-            browser.destroy()
-        }
+        if (::browser.isInitialized) WebViewPowerManager.destroy(browser)
         super.onDestroy()
     }
 
