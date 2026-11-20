@@ -284,7 +284,7 @@ class MainActivity : Activity() {
     override fun onBackPressed() {
         if (::browser.isInitialized && browser.canGoBack()) {
             browser.goBack()
-        } else if (::browser.isInitialized && WebPlaybackCoordinator.isPlaying(browser)) {
+        } else if (::browser.isInitialized && WebPlaybackCoordinator.shouldRetain(browser)) {
             moveTaskToBack(true)
         } else {
             super.onBackPressed()
@@ -297,7 +297,7 @@ class MainActivity : Activity() {
     }
 
     override fun onStop() {
-        if (::browser.isInitialized && !WebPlaybackCoordinator.isPlaying(browser)) WebViewPowerManager.pause(browser)
+        if (::browser.isInitialized && !WebPlaybackCoordinator.shouldRetain(browser)) WebViewPowerManager.pause(browser)
         super.onStop()
     }
 
