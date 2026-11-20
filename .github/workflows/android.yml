@@ -1,0 +1,64 @@
+name: Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - feature/android-player-foundation
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.13"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Build debug APK
+        run: gradle assembleDebug --stacktrace
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nex-PlayBack-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0.1.0 app/build/outputs/apk/debug/app-debug.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Nex-PlayBack v0.1.0" \
+            --target "$GITHUB_SHA" \
+            --notes "## Nex-PlayBack v0.1.0
+
+          First Android release.
+
+          - Lightweight WebView browser for general websites.
+          - Background audio player for direct HTTPS audio streams and local audio files.
+          - MediaSession notification and lock-screen controls.
+          - Browser WebView pauses while the app is in the background.
+          - Floating browser can be minimized to pause its WebView rendering.
+
+          Minimum Android version: Android 10 (API 29).
+
+          Note: YouTube opens through its official website. Video-to-audio extraction is not included; website playback follows the website's own restrictions. This is a debug-signed APK."
