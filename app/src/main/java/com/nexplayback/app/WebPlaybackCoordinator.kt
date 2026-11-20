@@ -108,7 +108,7 @@ object WebPlaybackCoordinator {
             val webView = activeWebView ?: return@post
             suppressedPausedView = webView
             webView.evaluateJavascript(
-                "(function(){var m=window.__nexPlaybackLastMedia;if(!m)return;try{m.pause();m.currentTime=0;}catch(e){}})();",
+                "(function(){var m=window.__nexPlaybackLastMedia;if(!m)return;try{m.pause();m.currentTime=0;window.__nexPlaybackLastMedia=null;}catch(e){}})();",
                 null
             )
             entries[webView]?.info = null
@@ -140,7 +140,8 @@ object WebPlaybackCoordinator {
         seekable: Boolean
     ) {
         if (!entries.containsKey(webView)) return
-        if (suppressedPausedView === webView && !playing) return
+        if (suppressedPausedView === webView && !playing && hasMedia) return
+        if (suppressedPausedView === webView && !playing && !hasMedia) suppressedPausedView = null
         if (playing) suppressedPausedView = null
 
         val info = if (hasMedia) {
