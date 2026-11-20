@@ -10,7 +10,7 @@ Android browser and background audio player.
 - MediaSession foreground service for lock-screen, notification and Bluetooth media controls.
 - Floating WebView window. Android's draw-over-other-apps permission is requested only when the user taps **FLOAT**.
 - Minimum Android version: Android 10 (API 29).
-- CI workflow builds a debug APK on pushes to `main` and `feature/android-player-foundation`.
+- Current app version: 0.1.1.
 
 ## Background resource handling
 
@@ -32,4 +32,12 @@ Open the repository in Android Studio, or run:
 gradle assembleDebug
 ```
 
-The APK is generated at `app/build/outputs/apk/debug/app-debug.apk`. GitHub Actions publishes the same debug APK as a workflow artifact.
+The CI APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
+
+## GitHub Actions and releases
+
+- Pushes to `main` create a temporary CI artifact named `Nex-PlayBack-CI`.
+- Pushing a version tag such as `v0.1.1` creates an APK asset named `Nex-PlayBack-v0.1.1.apk` and publishes it to that GitHub Release.
+- The APK filename shown in tagged releases does not contain the word `debug`.
+
+**Signing note:** Tagged APKs currently use the Android debug signing certificate so they remain installable. This is not a permanent production signing key; set up a private release keystore in GitHub Actions before wider distribution. The original v0.1.0 release remains unchanged.
