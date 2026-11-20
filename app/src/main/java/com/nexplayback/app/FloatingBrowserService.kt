@@ -148,7 +148,10 @@ class FloatingBrowserService : Service() {
         windowView = panel
         try {
             windowManager?.addView(panel, params)
-            webView?.loadUrl(initialUrl)
+            webView?.let {
+                WebViewPowerManager.resume(it)
+                it.loadUrl(initialUrl)
+            }
         } catch (_: SecurityException) {
             stopSelf()
         } catch (_: WindowManager.BadTokenException) {
@@ -174,7 +177,8 @@ class FloatingBrowserService : Service() {
         val addressRow = panel.getChildAt(1)
         minimized = !minimized
         addressRow.visibility = if (minimized) View.GONE else View.VISIBLE
-        web.visibility = if (minimized) View.GONE else View.VISIBLE
+        if (minimized) WebViewPowerManager.pause(web)
+        else WebViewPowerManager.resume(web)
         params.height = if (minimized) dp(48) else dp(500)
         windowManager?.updateViewLayout(panel, params)
     }
@@ -187,10 +191,7 @@ class FloatingBrowserService : Service() {
                 // The overlay was already detached by the system.
             }
         }
-        webView?.apply {
-            stopLoading()
-            destroy()
-        }
+        webView?.let { WebViewPowerManager.destroy(it) }
         webView = null
         windowView = null
         windowParams = null
