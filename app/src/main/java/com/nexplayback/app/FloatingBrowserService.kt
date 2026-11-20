@@ -165,9 +165,9 @@ class FloatingBrowserService : Service() {
                 restoreBrowserWindow(browser.id)
             })
         }
-        menu.addView(makeMenuButton("Tutup semua jendela") {
+        menu.addView(makeMenuButton("Sembunyikan semua jendela") {
             removeMenu()
-            closeAllBrowserWindows()
+            hideAllBrowserWindows()
         })
         menu.addView(makeMenuButton("Tutup menu") { removeMenu() })
 
@@ -236,7 +236,7 @@ class FloatingBrowserService : Service() {
         addressRow.addView(addressInput, LinearLayout.LayoutParams(0, dp(40), 1f))
         addressRow.addView(makeButton("GO") { loadAddress(id) })
 
-        val web = WebView(this).apply {
+        val web = WebPlaybackCoordinator.createFloatingWebView(this).apply {
             setBackgroundColor(Color.rgb(17, 25, 35))
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
@@ -250,6 +250,7 @@ class FloatingBrowserService : Service() {
                 }
 
                 override fun onPageFinished(view: WebView, url: String) {
+                    WebPlaybackCoordinator.onPageFinished(view)
                     addressInput.setText(url)
                 }
 
@@ -258,6 +259,7 @@ class FloatingBrowserService : Service() {
                 }
             }
         }
+        WebPlaybackCoordinator.configure(web)
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
@@ -451,15 +453,16 @@ class FloatingBrowserService : Service() {
         }
     }
 
-    private fun closeAllBrowserWindows() {
+    private fun hideAllBrowserWindows() {
         browserWindows.values.toList().forEach { browser ->
-            browserWindows.remove(browser.id)
-            try {
-                if (browser.attached) windowManager.removeView(browser.root)
-            } catch (_: IllegalArgumentException) {
-                // The window was already detached.
+            if (browser.attached) {
+                try {
+                    windowManager.removeView(browser.root)
+                    browser.attached = false
+                } catch (_: IllegalArgumentException) {
+                    browser.attached = false
+                }
             }
-            WebViewPowerManager.destroy(browser.webView)
         }
     }
 
@@ -492,7 +495,11 @@ class FloatingBrowserService : Service() {
             } catch (_: IllegalArgumentException) {
                 // The window was already detached.
             }
-            WebViewPowerManager.destroy(browser.webView)
+            if (WebPlaybackCoordinator.shouldRetain(browser.webView)) {
+                (browser.webView.parent as? android.view.ViewGroup)?.removeView(browser.webView)
+            } else {
+                WebPlaybackCoordinator.destroyWebView(browser.webView)
+            }
         }
         browserWindows.clear()
         launcherView?.let {
