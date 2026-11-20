@@ -31,7 +31,11 @@ class WebMediaSessionPlayer(
             .add(Player.COMMAND_GET_METADATA)
             .add(Player.COMMAND_GET_TIMELINE)
             .apply {
-                if (isSeekable) add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+                if (isSeekable) {
+                    add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+                    add(Player.COMMAND_SEEK_BACK)
+                    add(Player.COMMAND_SEEK_FORWARD)
+                }
             }
             .build()
         val item = mediaItem
@@ -50,6 +54,8 @@ class WebMediaSessionPlayer(
             .setAvailableCommands(commands)
             .setPlaybackState(if (item == null) Player.STATE_IDLE else Player.STATE_READY)
             .setPlayWhenReady(isPlaying, Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
+            .setSeekBackIncrementMs(10_000L)
+            .setSeekForwardIncrementMs(10_000L)
             .setPlaylist(playlist)
         if (item != null) {
             state.setCurrentMediaItemIndex(0)
