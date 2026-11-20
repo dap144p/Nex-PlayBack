@@ -235,7 +235,6 @@ class FloatingBrowserService : Service() {
         }
         addressRow.addView(addressInput, LinearLayout.LayoutParams(0, dp(40), 1f))
         addressRow.addView(makeButton("GO") { loadAddress(id) })
-        root.addView(addressRow)
 
         val web = WebView(this).apply {
             setBackgroundColor(Color.rgb(17, 25, 35))
