@@ -76,7 +76,7 @@ class FloatingBrowserService : Service() {
         addressInput = EditText(this).apply {
             hint = "Alamat website"
             textSize = 13f
-            singleLine = true
+            isSingleLine = true
             setTextColor(Color.WHITE)
             setHintTextColor(Color.LTGRAY)
             setPadding(dp(8), 0, dp(8), 0)
